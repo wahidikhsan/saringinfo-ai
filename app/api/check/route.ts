@@ -3,12 +3,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const text = typeof body.text === "string" ? body.text : "";
 
-    const hasil = deteksiLengkap(text);
+    const hasil = deteksiCerdas(text);
 
     return Response.json({
       ...hasil,
-      source: "analisis_sistem",
-      note: "Analisis berdasarkan pola informasi yang teruji"
+      source: "sistem_analisis",
+      note: "Hasil berdasarkan analisis pola informasi"
     });
 
   } catch (error) {
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   }
 }
 
-function deteksiLengkap(input: string) {
+function deteksiCerdas(input: string) {
   if (!input || input.trim().length < 10) {
     return {
       status: "neutral",
@@ -39,83 +39,96 @@ function deteksiLengkap(input: string) {
   let skorValid = 0;
   const alasan: string[] = [];
 
-  const polaMencurigakan = [
+  const polaHoaks = [
     { kata: "sembuhkan", bobot: 2, keterangan: "Klaim penyembuhan" },
     { kata: "menyembuhkan", bobot: 2, keterangan: "Klaim penyembuhan" },
-    { kata: "instan", bobot: 2, keterangan: "Janji hasil cepat" },
-    { kata: "rahasia", bobot: 3, keterangan: "Informasi yang diklaim rahasia" },
-    { kata: "dirahasiakan", bobot: 3, keterangan: "Informasi yang diklaim disembunyikan" },
+    { kata: "instan", bobot: 2, keterangan: "Janji hasil terlalu cepat" },
+    { kata: "rahasia", bobot: 3, keterangan: "Diklaim sebagai informasi rahasia" },
+    { kata: "dirahasiakan", bobot: 3, keterangan: "Diklaim disembunyikan" },
     { kata: "tidak diberitakan", bobot: 3, keterangan: "Tuduhan media menutupi berita" },
     { kata: "konspirasi", bobot: 3, keterangan: "Teori konspirasi" },
-    { kata: "100%", bobot: 2, keterangan: "Pernyataan mutlak" },
+    { kata: "100%", bobot: 2, keterangan: "Pernyataan mutlak tanpa bukti" },
     { kata: "pasti", bobot: 2, keterangan: "Pernyataan mutlak" },
-    { kata: "dijamin", bobot: 2, keterangan: "Pernyataan berlebihan" },
+    { kata: "dijamin", bobot: 2, keterangan: "Janji berlebihan" },
     { kata: "tanpa obat", bobot: 3, keterangan: "Menyarankan hentikan pengobatan" },
     { kata: "ganti obat dokter", bobot: 4, keterangan: "Menyarankan hentikan pengobatan medis" },
-    { kata: "chip", bobot: 2, keterangan: "Klaim tidak berdasar" },
-    { kata: "5g", bobot: 2, keterangan: "Klaim tidak berdasar" },
-    { kata: "vaksin berbahaya", bobot: 3, keterangan: "Klaim tidak teruji" },
-    { kata: "bohong pemerintah", bobot: 3, keterangan: "Tuduhan tanpa bukti" }
+    { kata: "hemat bensin", bobot: 3, keterangan: "Klaim menghemat bahan bakar tidak berdasar" },
+    { kata: "magnet", bobot: 3, keterangan: "Klaim teknologi tidak terbukti" },
+    { kata: "stiker", bobot: 2, keterangan: "Barang tidak berfungsi sesuai klaim" },
+    { kata: "bantuan 5 juta", bobot: 4, keterangan: "Janji bantuan tidak resmi" },
+    { kata: "disebarkan", bobot: 2, keterangan: "Mengajak penyebaran informasi" },
+    { kata: "tanpa syarat", bobot: 2, keterangan: "Janji manis tidak realistis" }
   ];
 
-  polaMencurigakan.forEach(item => {
+  polaHoaks.forEach(item => {
     if (teks.includes(item.kata)) {
       skorHoaks += item.bobot;
       alasan.push(item.keterangan);
     }
   });
 
-  const polaTerpercaya = [
+  const polaValid = [
     { kata: "penelitian", bobot: 2, keterangan: "Mengacu pada hasil penelitian" },
-    { kata: "studi", bobot: 2, keterangan: "Mengacu pada hasil studi" },
-    { kata: "data", bobot: 2, keterangan: "Mengacu pada data nyata" },
-    { kata: "who", bobot: 3, keterangan: "Mengacu pada lembaga internasional" },
-    { kata: "kemenkes", bobot: 3, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "bmkg", bobot: 3, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "kominfo", bobot: 3, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "lembaga resmi", bobot: 3, keterangan: "Mengacu pada sumber resmi" },
-    { kata: "dokter", bobot: 2, keterangan: "Mengacu pada tenaga medis" },
-    { kata: "ahli", bobot: 2, keterangan: "Mengacu pada sumber berkompeten" },
-    { kata: "berita resmi", bobot: 3, keterangan: "Mengacu pada sumber terpercaya" }
+    { kata: "studi", bobot: 2, keterangan: "Mengacu pada kajian ilmiah" },
+    { kata: "data", bobot: 2, keterangan: "Mengacu pada data terukur" },
+    { kata: "bpom", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "badan pom", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "kemenkes", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "bmkg", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "kominfo", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "lembaga resmi", bobot: 3, keterangan: "Mengacu pada sumber terpercaya" },
+    { kata: "berita resmi", bobot: 3, keterangan: "Mengacu pada sumber terpercaya" },
+    { kata: "peringatan", bobot: 2, keterangan: "Informasi imbauan resmi" },
+    { kata: "tanpa izin edar", bobot: 2, keterangan: "Pernyataan berdasarkan peraturan" }
   ];
 
-  polaTerpercaya.forEach(item => {
+  polaValid.forEach(item => {
     if (teks.includes(item.kata)) {
       skorValid += item.bobot;
       alasan.push(item.keterangan);
     }
   });
 
+  if (teks.includes("penelitian") && teks.includes("belum dipublikasikan")) {
+    skorValid -= 2;
+    alasan.push("Penelitian belum dipublikasikan secara luas");
+  }
+
+  if (teks.includes("ada kabar") || teks.includes "dikatakan") {
+    skorHoaks += 1;
+    alasan.push("Hanya kabar yang belum dikonfirmasi");
+  }
+
   const total = skorHoaks + skorValid;
-  let tingkatKeyakinan = 50;
+  let keyakinan = 50;
 
   if (total > 0) {
-    tingkatKeyakinan = Math.min(Math.round((Math.abs(skorHoaks - skorValid) / total) * 90) + 10, 95);
+    keyakinan = Math.min(Math.round((Math.abs(skorHoaks - skorValid) / total) * 90) + 10, 95);
   }
 
   let status: "hoax" | "valid" | "neutral";
-  let pesanSingkat = "";
-  let penjelasanLengkap = "";
+  let pesan = "";
+  let penjelasan = "";
 
-  if (skorHoaks > skorValid + 2) {
+  if (skorHoaks > skorValid + 1) {
     status = "hoax";
-    pesanSingkat = "⚠️ Kemungkinan Besar Hoaks / Menyesatkan";
-    penjelasanLengkap = "Informasi ini mengandung pola klaim yang berlebihan, tidak memiliki sumber yang jelas, atau mengandung unsur yang menyesatkan. Disarankan untuk memeriksa kembali ke sumber resmi sebelum mempercayai atau menyebarkannya.";
-  } else if (skorValid > skorHoaks + 2) {
+    pesan = "⚠️ Kemungkinan Besar Hoaks / Menyesatkan";
+    penjelasan = "Informasi ini mengandung klaim yang tidak berdasar, berlebihan, atau tidak memiliki sumber resmi. Sebaiknya tidak dipercaya dan tidak disebarkan sebelum dibuktikan kebenarannya.";
+  } else if (skorValid > skorHoaks + 1) {
     status = "valid";
-    pesanSingkat = "✅ Cenderung Valid & Dapat Dipercaya";
-    penjelasanLengkap = "Informasi ini merujuk pada lembaga atau sumber yang resmi dan berwenang. Isinya sesuai dengan kaidah penyampaian informasi yang baik dan dapat dipertanggungjawabkan.";
+    pesan = "✅ Cenderung Valid & Dapat Dipercaya";
+    penjelasan = "Informasi ini berasal dari lembaga atau sumber yang resmi dan berwenang. Isinya sesuai dengan kaidah penyampaian informasi yang dapat dipertanggungjawabkan.";
   } else {
     status = "neutral";
-    pesanSingkat = "ℹ️ Perlu Verifikasi Lebih Lanjut";
-    penjelasanLengkap = "Informasi ini belum memiliki tanda yang cukup jelas untuk dikategorikan pasti. Sebaiknya dicocokkan dengan situs verifikasi berita resmi seperti CekFakta Kominfo atau situs lembaga terkait sebelum disebarkan.";
+    pesan = "ℹ️ Perlu Verifikasi Lebih Lanjut";
+    penjelasan = "Informasi ini belum memiliki tanda yang cukup jelas untuk dikategorikan pasti. Sebaiknya dicocokkan dengan situs verifikasi berita resmi seperti CekFakta Kominfo.";
   }
 
   return {
     status,
-    message: pesanSingkat,
-    confidence: tingkatKeyakinan,
+    message: pesan,
+    confidence: keyakinan,
     reasons: [...new Set(alasan)],
-    explanation: penjelasanLengkap
+    explanation: penjelasan
   };
 }
