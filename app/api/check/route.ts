@@ -6,31 +6,25 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.warn("❌ API Key TIDAK DITEMUKAN");
+      console.warn("❌ API Key tidak ditemukan, pakai mode cadangan");
       return Response.json({
         ...fallbackCheck(text),
         source: "fallback",
-        note: "Kunci API tidak ditemukan"
+        note: "Kunci API belum diatur"
       });
     }
 
-    console.log("🔍 Memproses dengan kunci API...");
-
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `Analisis apakah teks berikut ini berisi hoaks, valid, atau perlu verifikasi. Berikan penjelasan yang jelas.
+          contents: [{
+            parts: [{
+              text: `Analisis apakah teks berikut ini hoaks, valid, atau perlu verifikasi.
 
-Balas HANYA dalam format JSON, tanpa teks lain, tanpa awalan \`\`\`json:
+Balas HANYA dalam format JSON, tanpa teks lain, tanpa awalan kode:
 {
   "status": "hoax | valid | neutral",
   "message": "Ringkasan kesimpulan",
@@ -41,25 +35,21 @@ Balas HANYA dalam format JSON, tanpa teks lain, tanpa awalan \`\`\`json:
 
 Teks:
 ${text}
-`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-          },
-        }),
+`
+            }]
+          }],
+          generationConfig: { temperature: 0.1 }
+        })
       }
     );
 
     if (!response.ok) {
-      const errorDetail = await response.json().catch(() => ({}));
-      console.error("❌ Gagal terhubung ke Gemini:", response.status, errorDetail);
+      const err = await response.json().catch(() => ({}));
+      console.error("❌ Gagal hubung ke Gemini:", response.status, err);
       return Response.json({
         ...fallbackCheck(text),
         source: "fallback",
-        note: `Gagal terhubung ke AI (kode: ${response.status})`
+        note: "Tidak dapat terhubung ke AI"
       });
     }
 
@@ -67,81 +57,106 @@ ${text}
     const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!aiText) {
-      console.warn("❌ Respon dari AI kosong");
+      console.warn("❌ Respon AI kosong");
       return Response.json({
         ...fallbackCheck(text),
         source: "fallback",
-        note: "Respon AI kosong"
+        note: "Tidak ada jawaban dari AI"
       });
     }
 
-    const clean = aiText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
+    const clean = aiText.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
 
-    console.log("✅ Berhasil dapat hasil dari Gemini!");
     return Response.json({
       ...parsed,
       source: "gemini"
     });
 
   } catch (error) {
-    console.error("❌ Kesalahan proses:", error);
-    return Response.json(
-      {
-        ...fallbackCheck(""),
-        note: "Terjadi kesalahan sistem"
-      },
-      { status: 500 }
-    );
+    console.error("❌ Kesalahan:", error);
+    return Response.json({
+      ...fallbackCheck(""),
+      note: "Terjadi kesalahan sistem"
+    }, { status: 500 });
   }
 }
 
 function fallbackCheck(input: string) {
-  if (!input) {
+  if (!input || input.trim().length < 5) {
     return {
       status: "neutral",
-      message: "⚠️ Input tidak valid.",
+      message: "⚠️ Masukkan teks yang ingin diperiksa",
       confidence: 0,
       reasons: [],
-      explanation: "Masukkan teks berita yang ingin diperiksa."
+      explanation: "Teks terlalu pendek atau kosong."
     };
   }
 
-  const lower = input.toLowerCase().replace(/[^\w\s]/g, "").trim();
+  const lower = input.toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
   let scoreHoax = 0;
   let scoreValid = 0;
   const reasons: string[] = [];
 
-  const hoaxPatterns = ["chip", "5g", "konspirasi", "elite global", "agenda rahasia", "tidak diberitakan media", "dokter disembunyikan", "ditutup-tutupi", "bohong pemerintah"];
-  hoaxPatterns.forEach(p => lower.includes(p) && (scoreHoax += 2, reasons.push(`Klaim mencurigakan: "${p}"`)));
+  const hoaxPatterns = [
+    "sembuhkan", "menyembuhkan", "obat alami", "tanaman obat", "instan",
+    "tanpa efek samping", "menggantikan obat dokter", "tidak perlu obat",
+    "rahasia", "dirahasiakan", "tidak diberitakan media", "konspirasi",
+    "chip", "5g", "vaksin berbahaya", "terbukti 100%", "pasti", "dijamin",
+    "heboh", "viral", "penyembuhan ajaib", "semua penyakit"
+  ];
 
-  const sensational = ["viral", "heboh", "100%", "pasti", "terbukti", "dijamin"];
-  sensational.forEach(w => lower.includes(w) && (scoreHoax += 1, reasons.push(`Bahasa berlebihan: "${w}"`)));
+  hoaxPatterns.forEach(p => {
+    if (lower.includes(p)) {
+      scoreHoax += 2;
+      reasons.push(`Klaim perlu diwaspadai: "${p}"`);
+    }
+  });
 
-  const validPatterns = ["penelitian", "studi", "data", "who", "kemenkes", "kemenkominfo", "ilmiah", "jurnal", "dokter", "berita resmi"];
-  validPatterns.forEach(p => lower.includes(p) && (scoreValid += 2, reasons.push(`Sumber terpercaya: "${p}"`)));
+  if (
+    (lower.includes("tanaman") || lower.includes("ramuan") || lower.includes("jamu")) &&
+    (lower.includes("sembuhkan") || lower.includes("obati")) &&
+    (lower.includes("diabetes") || lower.includes("kanker") || lower.includes("jantung") || lower.includes("hipertensi"))
+  ) {
+    scoreHoax += 3;
+    reasons.push("Klaim sembuhkan penyakit serius tanpa bukti ilmiah");
+  }
 
-  if (lower.length < 20) reasons.push("Teks terlalu pendek");
+  if (lower.includes("ganti obat") || lower.includes("berhenti minum obat") || lower.includes("tanpa obat dokter")) {
+    scoreHoax += 4;
+    reasons.push("Menyarankan hentikan pengobatan medis (berisiko)");
+  }
+
+  const validPatterns = [
+    "penelitian", "studi", "riset", "data", "who", "kemenkes", "kominfo",
+    "bssn", "kementerian", "lembaga resmi", "ilmiah", "jurnal", "dokter",
+    "ahli", "tenaga kesehatan", "berita resmi"
+  ];
+
+  validPatterns.forEach(p => {
+    if (lower.includes(p)) {
+      scoreValid += 2;
+      reasons.push(`Mengacu pada sumber terpercaya: "${p}"`);
+    }
+  });
+
+  if (input.length < 30) reasons.push("Teks cukup pendek, hasil kurang akurat");
 
   const total = scoreHoax + scoreValid;
-  const confidence = total === 0 ? 50 : Math.min(Math.round((Math.abs(scoreHoax - scoreValid) / total) * 100), 95);
+  const confidence = total === 0 ? 50 : Math.min(Math.round((Math.abs(scoreHoax - scoreValid) / total) * 90) + 10, 95);
 
   let status: "hoax" | "valid" | "neutral";
   let message = "";
 
-  if (scoreHoax > scoreValid + 1) {
+  if (scoreHoax > scoreValid + 2) {
     status = "hoax";
-    message = "⚠️ Kemungkinan Besar Hoaks";
-  } else if (scoreValid > scoreHoax + 1) {
+    message = "⚠️ Kemungkinan Besar Hoaks / Menyesatkan";
+  } else if (scoreValid > scoreHoax + 2) {
     status = "valid";
-    message = "✅ Cenderung Valid";
+    message = "✅ Cenderung Valid & Dapat Dipercaya";
   } else {
     status = "neutral";
-    message = "ℹ️ Perlu Verifikasi";
+    message = "ℹ️ Perlu Verifikasi Lebih Lanjut";
   }
 
   return {
@@ -149,6 +164,6 @@ function fallbackCheck(input: string) {
     message,
     confidence,
     reasons,
-    explanation: "Belum bisa terhubung ke AI, menampilkan hasil pemeriksaan dasar."
+    explanation: "Hasil pemeriksaan pola kata kunci. Belum terhubung ke AI."
   };
 }
