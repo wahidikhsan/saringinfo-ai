@@ -94,7 +94,7 @@ function deteksiCerdas(input: string) {
     alasan.push("Penelitian belum dipublikasikan secara luas");
   }
 
-  if (teks.includes("ada kabar") || teks.includes "dikatakan") {
+  if (teks.includes("ada kabar") || teks.includes("dikatakan")) {
     skorHoaks += 1;
     alasan.push("Hanya kabar yang belum dikonfirmasi");
   }
