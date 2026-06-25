@@ -43,7 +43,7 @@ function deteksiCerdas(input: string) {
     { kata: "sembuhkan", bobot: 2, keterangan: "Klaim penyembuhan" },
     { kata: "menyembuhkan", bobot: 2, keterangan: "Klaim penyembuhan" },
     { kata: "instan", bobot: 2, keterangan: "Janji hasil terlalu cepat" },
-    { kata: "rahasia", bobot: 3, keterangan: "Diklaim sebagai informasi rahasia" },
+    { kata: "rahasia", bobot: 3, keterangan: "Diklaim informasi rahasia" },
     { kata: "dirahasiakan", bobot: 3, keterangan: "Diklaim disembunyikan" },
     { kata: "tidak diberitakan", bobot: 3, keterangan: "Tuduhan media menutupi berita" },
     { kata: "konspirasi", bobot: 3, keterangan: "Teori konspirasi" },
@@ -52,12 +52,11 @@ function deteksiCerdas(input: string) {
     { kata: "dijamin", bobot: 2, keterangan: "Janji berlebihan" },
     { kata: "tanpa obat", bobot: 3, keterangan: "Menyarankan hentikan pengobatan" },
     { kata: "ganti obat dokter", bobot: 4, keterangan: "Menyarankan hentikan pengobatan medis" },
-    { kata: "hemat bensin", bobot: 3, keterangan: "Klaim menghemat bahan bakar tidak berdasar" },
-    { kata: "magnet", bobot: 3, keterangan: "Klaim teknologi tidak terbukti" },
-    { kata: "stiker", bobot: 2, keterangan: "Barang tidak berfungsi sesuai klaim" },
+    { kata: "hemat bensin", bobot: 3, keterangan: "Klaim tidak berdasar" },
+    { kata: "magnet", bobot: 3, keterangan: "Klaim tidak terbukti" },
+    { kata: "stiker", bobot: 2, keterangan: "Klaim tidak terbukti" },
     { kata: "bantuan 5 juta", bobot: 4, keterangan: "Janji bantuan tidak resmi" },
-    { kata: "disebarkan", bobot: 2, keterangan: "Mengajak penyebaran informasi" },
-    { kata: "tanpa syarat", bobot: 2, keterangan: "Janji manis tidak realistis" }
+    { kata: "tanpa syarat", bobot: 2, keterangan: "Janji tidak realistis" }
   ];
 
   polaHoaks.forEach(item => {
@@ -68,18 +67,17 @@ function deteksiCerdas(input: string) {
   });
 
   const polaValid = [
-    { kata: "penelitian", bobot: 2, keterangan: "Mengacu pada hasil penelitian" },
-    { kata: "studi", bobot: 2, keterangan: "Mengacu pada kajian ilmiah" },
+    { kata: "penelitian", bobot: 2, keterangan: "Mengacu pada kajian ilmiah" },
+    { kata: "studi", bobot: 2, keterangan: "Mengacu pada penelitian" },
     { kata: "data", bobot: 2, keterangan: "Mengacu pada data terukur" },
-    { kata: "bpom", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "badan pom", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "kemenkes", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "bmkg", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
-    { kata: "kominfo", bobot: 4, keterangan: "Mengacu pada lembaga resmi pemerintah" },
+    { kata: "bpom", bobot: 4, keterangan: "Mengacu pada lembaga resmi" },
+    { kata: "badan pom", bobot: 4, keterangan: "Mengacu pada lembaga resmi" },
+    { kata: "kemenkes", bobot: 4, keterangan: "Mengacu pada lembaga resmi" },
+    { kata: "bmkg", bobot: 4, keterangan: "Mengacu pada lembaga resmi" },
+    { kata: "kominfo", bobot: 4, keterangan: "Mengacu pada lembaga resmi" },
     { kata: "lembaga resmi", bobot: 3, keterangan: "Mengacu pada sumber terpercaya" },
     { kata: "berita resmi", bobot: 3, keterangan: "Mengacu pada sumber terpercaya" },
-    { kata: "peringatan", bobot: 2, keterangan: "Informasi imbauan resmi" },
-    { kata: "tanpa izin edar", bobot: 2, keterangan: "Pernyataan berdasarkan peraturan" }
+    { kata: "peringatan", bobot: 2, keterangan: "Informasi imbauan resmi" }
   ];
 
   polaValid.forEach(item => {
@@ -91,12 +89,12 @@ function deteksiCerdas(input: string) {
 
   if (teks.includes("penelitian") && teks.includes("belum dipublikasikan")) {
     skorValid -= 2;
-    alasan.push("Penelitian belum dipublikasikan secara luas");
+    alasan.push("Penelitian belum dipublikasikan luas");
   }
 
   if (teks.includes("ada kabar") || teks.includes("dikatakan")) {
     skorHoaks += 1;
-    alasan.push("Hanya kabar yang belum dikonfirmasi");
+    alasan.push("Hanya kabar belum dikonfirmasi");
   }
 
   const total = skorHoaks + skorValid;
@@ -113,15 +111,15 @@ function deteksiCerdas(input: string) {
   if (skorHoaks > skorValid + 1) {
     status = "hoax";
     pesan = "⚠️ Kemungkinan Besar Hoaks / Menyesatkan";
-    penjelasan = "Informasi ini mengandung klaim yang tidak berdasar, berlebihan, atau tidak memiliki sumber resmi. Sebaiknya tidak dipercaya dan tidak disebarkan sebelum dibuktikan kebenarannya.";
+    penjelasan = "Informasi ini mengandung klaim tidak berdasar. Sebaiknya tidak disebarkan.";
   } else if (skorValid > skorHoaks + 1) {
     status = "valid";
     pesan = "✅ Cenderung Valid & Dapat Dipercaya";
-    penjelasan = "Informasi ini berasal dari lembaga atau sumber yang resmi dan berwenang. Isinya sesuai dengan kaidah penyampaian informasi yang dapat dipertanggungjawabkan.";
+    penjelasan = "Informasi berasal dari sumber resmi dan dapat dipertanggungjawabkan.";
   } else {
     status = "neutral";
     pesan = "ℹ️ Perlu Verifikasi Lebih Lanjut";
-    penjelasan = "Informasi ini belum memiliki tanda yang cukup jelas untuk dikategorikan pasti. Sebaiknya dicocokkan dengan situs verifikasi berita resmi seperti CekFakta Kominfo.";
+    penjelasan = "Belum cukup bukti pasti. Cocokkan dengan situs CekFakta Kominfo.";
   }
 
   return {
